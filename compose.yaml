@@ -1,0 +1,65 @@
+services:
+  postgres-chat:
+    image: postgres:16.2
+    restart: unless-stopped
+    container_name: postgres_chat
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres-data:/var/lib/postgresql/data
+
+  inference:
+    image: microslac/inference
+    restart: unless-stopped
+    container_name: inference_chat
+    build:
+      dockerfile: ./inference/Dockerfile
+      context: .
+    environment:
+      MODEL_ID: "mistralai/Mistral-7B-Instruct-v0.2"
+      HUGGINGFACEHUB_API_TOKEN: "$HF_TOKEN"
+    volumes:
+      - ./hub:/data
+      - ./notes:/usr/src/notes
+    ports:
+      - "10017:80"
+      - "8888:8888"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+  chat:
+    image: microslac/chat
+    restart: unless-stopped
+    container_name: chat
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    environment:
+      APP_ENVIRONMENT: "dev"
+    env_file:
+      - .env
+    ports:
+      - "8017:8017"
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./src
+          target: /app/src
+        - action: rebuild
+          path: ./requirements
+    depends_on:
+      - postgres-chat
+      - inference
+
+volumes:
+  postgres-data: null
