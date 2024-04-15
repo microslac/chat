@@ -24,7 +24,7 @@ services:
       MODEL_ID: "mistralai/Mistral-7B-Instruct-v0.2"
       HUGGINGFACEHUB_API_TOKEN: "$HF_TOKEN"
     volumes:
-      - ./hub:/data
+      - $HOME/.cache/huggingface/hub:/data
       - ./notes:/usr/src/notes
     ports:
       - "10017:80"
@@ -45,7 +45,7 @@ services:
       context: .
       dockerfile: ./docker/Dockerfile
     environment:
-      APP_ENVIRONMENT: "dev"
+      ENVIRONMENT: "dev"
     env_file:
       - .env
     ports:

@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
-environment = os.environ.get("APP_ENVIRONMENT", "")
+environment = os.environ.get("ENVIRONMENT", "")
 
 env_file = ROOT_DIR / ".env"
 
@@ -18,4 +18,6 @@ if environment in ("test", "dev", "stage", "prod"):
 
 
 class EnvSettings(BaseSettings):
-    model_config = SettingsConfigDict(extra="allow", env_file=env_files, env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        extra="allow", env_file=env_files, env_file_encoding="utf-8"
+    )
