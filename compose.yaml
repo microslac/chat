@@ -13,16 +13,17 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres-data:/var/lib/postgresql/data
 
-  inference:
-    image: microslac/inference
+  inference-01:
+    image: microslac/inference-note
     restart: unless-stopped
-    container_name: inference_chat
+    container_name: inference_01
     build:
-      dockerfile: ./inference/Dockerfile
+      dockerfile: ./note/Dockerfile
       context: .
     environment:
-      MODEL_ID: "mistralai/Mistral-7B-Instruct-v0.2"
-      HUGGINGFACEHUB_API_TOKEN: "$HF_TOKEN"
+      MODEL_ID: "meta-llama/Meta-Llama-3-8B-Instruct"
+      HUGGING_FACE_HUB_TOKEN: "$HF_TOKEN"
+      CUDA_MEMORY_FRACTION: "0.9"
     volumes:
       - $HOME/.cache/huggingface/hub:/data
       - ./notes:/usr/src/notes
@@ -35,7 +36,35 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
+              capabilities: [gpu]
+
+  inference-02:
+    image: microslac/inference-note
+    restart: unless-stopped
+    container_name: inference_02
+    build:
+      dockerfile: ./note/Dockerfile
+      context: .
+    environment:
+      HUGGING_FACE_HUB_TOKEN: "$HF_TOKEN"
+      MODEL_ID: "microsoft/phi-2"
+      CUDA_MEMORY_FRACTION: "0.5"
+      QUANTIZE: "bitsandbytes-fp4"
+    volumes:
+      - $HOME/.cache/huggingface/hub:/data
+      - ./notes:/usr/src/notes
+    ports:
+      - "10019:80"
+      - "9999:8888"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - inference-01
 
   chat:
     image: microslac/chat
@@ -59,7 +88,6 @@ services:
           path: ./requirements
     depends_on:
       - postgres-chat
-      - inference
 
 volumes:
   postgres-data: null

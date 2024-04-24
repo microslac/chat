@@ -5,7 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import api_router
 from app.exceptions import exception_handlers, limiter
-from app.chat.llms.mistral import chain, per_req_config_modifier
+from app.chat.llms import llama, phi
+from app.chat.serve.chain import create_chain, per_req_config_modifier
 from app.lifespan import lifespan
 from app.settings import settings
 from app.database import create_all
@@ -20,7 +21,19 @@ app = FastAPI(
     limiter=limiter,
 )
 
-add_routes(app, chain, per_req_config_modifier=per_req_config_modifier, path="/chat")
+add_routes(
+    app,
+    create_chain(llama.chain),
+    per_req_config_modifier=per_req_config_modifier,
+    path="/chat",
+)
+
+add_routes(
+    app,
+    create_chain(phi.chain),
+    per_req_config_modifier=per_req_config_modifier,
+    path="/phi",
+)
 
 # TODO: middleware
 app.add_middleware(

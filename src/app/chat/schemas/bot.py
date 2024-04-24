@@ -1,5 +1,3 @@
-from app.chat.constants.llms import *  # noqa
-
 import json
 from contextlib import suppress
 from typing import Optional, List
@@ -7,12 +5,15 @@ from datetime import datetime
 from pydantic import field_serializer
 from app.schema import BaseModel, SchemaModel, ResponseOut
 from app.chat.utils import to_timestamp
+from app.chat.constants.bot import BotType
 
 
 class BotData(SchemaModel):
     id: str
     type: str
     name: str
+    model: str
+    status: str
     created: datetime
     updated: Optional[datetime] = None
     instruction: str
@@ -24,7 +25,7 @@ class BotData(SchemaModel):
 
     @field_serializer("instruction")
     def serializer_instruction(self, instruction: str):
-        if self.type == "mistral":
+        if self.type in (BotType.MISTRAL, BotType.PHI):
             with suppress(ValueError):
                 messages = json.loads(instruction)
                 return messages.pop(0).pop()
@@ -42,15 +43,10 @@ class BotInfoOut(ResponseOut):
 class BotCreateIn(BaseModel):
     name: str
     type: Optional[str] = ""
+    model: Optional[str] = ""
     team: Optional[str] = None
     instruction: Optional[str] = ""
-
-
-class AmiCreateIn(BotCreateIn):
-    name: str = "Ami"
-    type: str = "mistral"
-    team: str = "T5L7FB6WP4IO"
-    instruction: str = ami_instruction
+    status: Optional[str] = "inactive"
 
 
 class BotListIn(BaseModel):
@@ -60,3 +56,11 @@ class BotListIn(BaseModel):
 class BotListOut(ResponseOut):
     team: str
     bots: List[BotData]
+
+
+class BotPopulateIn(BaseModel):
+    team: str
+
+
+class BotPopulateOut(ResponseOut):
+    team: str

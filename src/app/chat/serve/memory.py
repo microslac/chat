@@ -11,21 +11,26 @@ from langchain_community.chat_message_histories.sql import (
 from sqlalchemy.sql import func
 from app.database import SessionLocal
 from app.chat.models.message import Message
+from app.chat.constants.bot import BotType
 from app.chat import service
 
 
 class CustomSQLChatMessageHistory(BaseChatMessageHistory):
-    def __init__(self, bot_id: str, user_id: str, chat_id: str, last: int = 10):
-        assert last % 2 == 0
+    def __init__(self, bot_id: str, user_id: str, chat_id: str, memory: int = 10):
+        assert memory % 2 == 0
 
-        self.last = last
+        self.memory = memory
         self.bot_id = bot_id
         self.user_id = user_id
         self.chat_id = chat_id
 
     def query_messages(self, session: SessionLocal):
         return service.query_messages(
-            session, bot=self.bot_id, user=self.user_id, chat=self.chat_id
+            session,
+            bot=self.bot_id,
+            user=self.user_id,
+            chat=self.chat_id,
+            reverse=False,
         )
 
     @property
@@ -34,9 +39,16 @@ class CustomSQLChatMessageHistory(BaseChatMessageHistory):
             messages = []
 
             bot = service.get_bot(session, bot=self.bot_id)
-            results = self.query_messages(session).limit(self.last).all()
+            results = self.query_messages(session).limit(self.memory).all()
 
-            if bot.type == "mistral":
+            if bot and bot.type in (BotType.LLAMA,):
+                if bot.instruction:
+                    message_dict = dict(
+                        type="system", data=dict(content=bot.instruction)
+                    )
+                    messages.append(messages_from_dict([message_dict])[0])
+
+            if bot and bot.type in (BotType.MISTRAL, BotType.PHI):
                 for role, content in json.loads(bot.instruction):
                     message_dict = dict(type=role, data=dict(content=content))
                     messages.append(messages_from_dict([message_dict])[0])

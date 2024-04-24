@@ -1,6 +1,6 @@
 default_stages: [ commit, manual ]
 default_language_version:
-  node: 14.16.1
+  node: 20.12.1
   python: python3.11
 repos:
   - repo: "https://github.com/pre-commit/pre-commit-hooks"
@@ -74,7 +74,7 @@ repos:
               T001,
               W292,W292,W391,W503,W503,W504,W504,
               TYP001, TYP002
-          - "--max-line-length=120"
+          - "--max-line-length=140"
           - "--max-complexity=30"
           # - '--select=B,C,E,F,W,T4,B9'
         additional_dependencies:

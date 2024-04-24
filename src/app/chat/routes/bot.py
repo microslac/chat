@@ -9,6 +9,8 @@ from app.chat.schemas.bot import (
     BotCreateIn,
     BotListIn,
     BotListOut,
+    BotPopulateIn,
+    BotPopulateOut,
 )
 
 router = APIRouter(prefix="/bots")
@@ -38,4 +40,16 @@ async def info(body: BotInfoIn, db: Session = Depends(db_session)):
 async def list_(body: BotListIn, db: Session = Depends(db_session)):
     bots = service.list_bots(db=db, **body.model_dump())
     resp = BotListOut(team=body.team, bots=BotData.dump(bots, many=True))
+    return resp
+
+
+@router.post(
+    "/_populate",
+    status_code=status.HTTP_200_OK,
+    response_model=BotPopulateOut,
+    tags=["bot"],
+)
+async def populate(body: BotPopulateIn, db: Session = Depends(db_session)):
+    service.populate_bots(db=db, **body.model_dump())
+    resp = BotPopulateOut(team=body.team)
     return resp

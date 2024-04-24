@@ -71,8 +71,10 @@ def destroy_chat(db: Session, **kwargs):
 def create_bot(db: Session, **kwargs) -> Bot:
     name = kwargs.pop("name")
     type = kwargs.pop("type")
-    instruction = kwargs.pop("instruction")
-    bot = Bot(name=name, type=type, instruction=instruction)
+    model = kwargs.pop("model", "")
+    status = kwargs.pop("status", "")
+    instruction = kwargs.pop("instruction", "")
+    bot = Bot(name=name, type=type, model=model, status=status, instruction=instruction)
     db.add(bot)
     db.commit()
 
@@ -96,6 +98,66 @@ def list_bots(db: Session, **kwargs):
     team_id = kwargs.pop("team")
 
     bot_ids = select(TeamBot.bot_id).where(TeamBot.team_id == team_id)
-    bots = db.query(Bot).filter(Bot.id.in_(bot_ids)).filter(Bot.deleted.is_(None)).all()
+    bots = (
+        db.query(Bot)
+        .filter(Bot.id.in_(bot_ids))
+        .filter(Bot.deleted.is_(None))
+        .filter(Bot.status == "active")
+        .all()
+    )
 
     return bots
+
+
+def populate_bots(db: Session, **kwargs):
+    from app.chat.constants.bot import BotType, BotModel, BotStatus
+    from app.chat.constants.llms import (
+        instruction,
+        instruction_json,
+        sophia_instruction,
+        llama3_instruction,
+    )
+
+    team = kwargs.pop("team")
+
+    mistral = create_bot(
+        db,
+        name="Mistral",
+        type=BotType.MISTRAL,
+        model=BotModel.MISTRAL7,
+        status=BotStatus.INACTIVE,
+        instruction=instruction_json,
+        team=team,
+    )
+
+    llama = create_bot(
+        db,
+        name="Meta",
+        type=BotType.LLAMA,
+        model=BotModel.LLAMA3,
+        status=BotStatus.ACTIVE,
+        instruction=llama3_instruction,
+        team=team,
+    )
+
+    llama_sophia = create_bot(
+        db,
+        name="Sophia",
+        type=BotType.LLAMA,
+        model=BotModel.LLAMA3,
+        status=BotStatus.ACTIVE,
+        instruction=sophia_instruction,
+        team=team,
+    )
+
+    phi = create_bot(
+        db,
+        name="Flink",
+        type=BotType.PHI,
+        model=BotModel.PHI2,
+        status=BotStatus.ACTIVE,
+        instruction=instruction_json,
+        team=team,
+    )
+
+    return mistral, llama, llama_sophia, phi
